@@ -8,7 +8,7 @@ import { log, logError } from './logger.js'
 
 function writeUrls(baseUrl: string) {
   const lines = Object.entries(config.childTokens)
-    .map(([name, token]) => `${name}: ${baseUrl}/${token}`)
+    .map(([name, token]) => `${name}: ${baseUrl}/feed/${token}/calendar.ics`)
   writeFileSync('calendar-urls.txt', lines.join('\n') + '\n')
   log(`Calendar URLs written to calendar-urls.txt`)
 }

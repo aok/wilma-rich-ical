@@ -210,51 +210,56 @@ export async function fetchSchedule(childSchools: Record<string, string | undefi
       const name = firstName(student.name)
       if (!schedule[name]) schedule[name] = {}
 
-      try {
-        const client = await WilmaClient.login({
-          baseUrl: profile.tenantUrl,
-          username: profile.username,
-          password,
-          studentNumber: student.studentNumber,
-        })
-
-        const overview = await client.overview.get()
-
-        for (const hw of overview.homework) {
-          if (hw.subjectCode && hw.subject) subjectNames[baseSubjectCode(hw.subjectCode)] = hw.subject
-        }
-        for (const grade of overview.grades) {
-          if (grade.subjectCode && grade.subject) subjectNames[baseSubjectCode(grade.subjectCode)] = grade.subject
-        }
-        exams[name] = []
-        for (const exam of overview.upcomingExams) {
-          if (exam.subjectCode && exam.subject) subjectNames[baseSubjectCode(exam.subjectCode)] = exam.subject
-          exams[name].push({
-            subject: exam.subjectCode || exam.subject,
-            date: exam.date,
-            name: exam.name,
-            topic: exam.topic,
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          if (attempt > 0) await new Promise(r => setTimeout(r, 3000))
+          const client = await WilmaClient.login({
+            baseUrl: profile.tenantUrl,
+            username: profile.username,
+            password,
+            studentNumber: student.studentNumber,
           })
-        }
 
-        const school = getSchoolConfig(childSchools[name])
-        if (school.subjectNames) Object.assign(subjectNames, school.subjectNames)
+          const overview = await client.overview.get()
 
-        for (const lesson of overview.schedule) {
-          if (school.filter && !school.filter(lesson)) continue
-          if (!schedule[name][lesson.date]) schedule[name][lesson.date] = []
-          schedule[name][lesson.date].push({
-            date: lesson.date,
-            start: lesson.start,
-            end: lesson.end,
-            subject: lesson.subject,
-            subjectCode: lesson.subjectCode,
-            teacher: lesson.teacher,
-            teacherCode: lesson.teacherCode,
-          })
+          for (const hw of overview.homework) {
+            if (hw.subjectCode && hw.subject) subjectNames[baseSubjectCode(hw.subjectCode)] = hw.subject
+          }
+          for (const grade of overview.grades) {
+            if (grade.subjectCode && grade.subject) subjectNames[baseSubjectCode(grade.subjectCode)] = grade.subject
+          }
+          exams[name] = []
+          for (const exam of overview.upcomingExams) {
+            if (exam.subjectCode && exam.subject) subjectNames[baseSubjectCode(exam.subjectCode)] = exam.subject
+            exams[name].push({
+              subject: exam.subjectCode || exam.subject,
+              date: exam.date,
+              name: exam.name,
+              topic: exam.topic,
+            })
+          }
+
+          const school = getSchoolConfig(childSchools[name])
+          if (school.subjectNames) Object.assign(subjectNames, school.subjectNames)
+
+          for (const lesson of overview.schedule) {
+            if (school.filter && !school.filter(lesson)) continue
+            if (!schedule[name][lesson.date]) schedule[name][lesson.date] = []
+            schedule[name][lesson.date].push({
+              date: lesson.date,
+              start: lesson.start,
+              end: lesson.end,
+              subject: lesson.subject,
+              subjectCode: lesson.subjectCode,
+              teacher: lesson.teacher,
+              teacherCode: lesson.teacherCode,
+            })
+          }
+          break
+        } catch (err) {
+          if (attempt === 0 && String(err).includes('403')) continue
+          console.error(`Schedule fetch failed for ${name} (${profile.tenantName}):`, err)
         }
-      } catch (err) {
-        console.error(`Schedule fetch failed for ${name} (${profile.tenantName}):`, err)
       }
     }
   }

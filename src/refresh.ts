@@ -63,7 +63,7 @@ export async function runRefresh(): Promise<void> {
 
   const processedIds = hasScheduleChange ? [] : memory.processed_message_ids
 
-  const { students: filteredStudents, newMessageIds } = filterMessages(
+  const { students: filteredStudents } = filterMessages(
     students,
     processedIds
   )
@@ -80,19 +80,8 @@ export async function runRefresh(): Promise<void> {
     log(`[refresh] Processing ${messagesWithBody.length} new message(s)...`)
   }
 
-  let newAnnotations: ScheduleAnnotation[] = []
-  let newSyntheticEvents: SyntheticEvent[] = []
-  let newUrgentNotices: UrgentNotice[] = []
-  let messagesProcessed = false
-  try {
-    const result = await processNewMessages(filteredStudents, config.llm.provider, config.llm.model, allChildSchedules)
-    newAnnotations = result.annotations
-    newSyntheticEvents = result.syntheticEvents
-    newUrgentNotices = result.urgentNotices
-    messagesProcessed = true
-  } catch (err) {
-    logError('[refresh] Message processing failed, will retry next cycle', err)
-  }
+  const result = await processNewMessages(filteredStudents, config.llm.provider, config.llm.model, allChildSchedules)
+  const { annotations: newAnnotations, syntheticEvents: newSyntheticEvents, urgentNotices: newUrgentNotices, processedIds: successfulIds } = result
 
   for (const notice of newUrgentNotices) {
     log(`[refresh] ⚠️ URGENT ${notice.student}: ${notice.message}`)
@@ -159,9 +148,7 @@ export async function runRefresh(): Promise<void> {
 
   writeMemory(config.memoryPath, {
     ...updatedMemory,
-    processed_message_ids: messagesProcessed
-      ? [...new Set([...updatedMemory.processed_message_ids, ...newMessageIds])]
-      : updatedMemory.processed_message_ids,
+    processed_message_ids: [...new Set([...updatedMemory.processed_message_ids, ...successfulIds])],
   })
 
   log('[refresh] Done.')

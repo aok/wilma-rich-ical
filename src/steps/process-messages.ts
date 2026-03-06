@@ -6,6 +6,9 @@ import { formatInTimeZone } from 'date-fns-tz'
 import type { WilmaStudent, WilmaMessage } from '../wilma.js'
 import { firstName } from '../wilma.js'
 import type { ScheduleAnnotation, ScheduleEntry, SyntheticEvent, UrgentNotice } from '../memory.js'
+import { log, logError } from '../logger.js'
+
+const THROTTLE_MS = 2000
 
 function getModel(provider: string, modelId: string) {
   if (provider === 'openai') return createOpenAI()(modelId)
@@ -85,38 +88,55 @@ async function processMessage(
   }
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
 export async function processNewMessages(
   students: WilmaStudent[],
   provider: string,
   modelId: string,
   allSchedules: Record<string, Record<string, ScheduleEntry[]>>,
-): Promise<{ annotations: ScheduleAnnotation[]; syntheticEvents: SyntheticEvent[]; urgentNotices: UrgentNotice[] }> {
+): Promise<{ annotations: ScheduleAnnotation[]; syntheticEvents: SyntheticEvent[]; urgentNotices: UrgentNotice[]; processedIds: number[] }> {
   const allAnnotations: ScheduleAnnotation[] = []
   const allSyntheticEvents: SyntheticEvent[] = []
   const allUrgentNotices: UrgentNotice[] = []
+  const processedIds: number[] = []
+  let callCount = 0
 
   for (const student of students) {
     const childName = firstName(student.student.name)
     const childSchedule = allSchedules[childName] ?? {}
     for (const msg of student.summary.recentMessages) {
       if (!msg.body) continue
-      const result = await processMessage(childName, msg, childSchedule, provider, modelId)
-      for (const a of result.annotations) {
-        allAnnotations.push({ ...a, student: childName, expires: formatInTimeZone(addDays(parseISO(a.matchDate), 1), 'Europe/Helsinki', 'yyyy-MM-dd'), sourceMessageId: msg.wilmaId })
-      }
-      for (const e of result.syntheticEvents) {
-        allSyntheticEvents.push({ ...e, student: childName, expires: formatInTimeZone(addDays(parseISO(e.date), 1), 'Europe/Helsinki', 'yyyy-MM-dd'), sourceMessageId: msg.wilmaId })
-      }
-      for (const notice of result.urgentNotices) {
-        allUrgentNotices.push({
-          student: childName,
-          message: notice,
-          expires: formatInTimeZone(addDays(new Date(), 3), 'Europe/Helsinki', 'yyyy-MM-dd'),
-          sourceMessageId: msg.wilmaId,
-        })
+      if (callCount > 0) await sleep(THROTTLE_MS)
+      try {
+        const result = await processMessage(childName, msg, childSchedule, provider, modelId)
+        callCount++
+        processedIds.push(msg.wilmaId)
+        for (const a of result.annotations) {
+          allAnnotations.push({ ...a, student: childName, expires: formatInTimeZone(addDays(parseISO(a.matchDate), 1), 'Europe/Helsinki', 'yyyy-MM-dd'), sourceMessageId: msg.wilmaId })
+        }
+        for (const e of result.syntheticEvents) {
+          allSyntheticEvents.push({ ...e, student: childName, expires: formatInTimeZone(addDays(parseISO(e.date), 1), 'Europe/Helsinki', 'yyyy-MM-dd'), sourceMessageId: msg.wilmaId })
+        }
+        for (const notice of result.urgentNotices) {
+          allUrgentNotices.push({
+            student: childName,
+            message: notice,
+            expires: formatInTimeZone(addDays(new Date(), 3), 'Europe/Helsinki', 'yyyy-MM-dd'),
+            sourceMessageId: msg.wilmaId,
+          })
+        }
+      } catch (err) {
+        logError(`[refresh] Failed to process message ${msg.wilmaId} for ${childName}, will retry next cycle`, err)
       }
     }
   }
 
-  return { annotations: allAnnotations, syntheticEvents: allSyntheticEvents, urgentNotices: allUrgentNotices }
+  if (processedIds.length > 0) {
+    log(`[refresh] Processed ${processedIds.length} message(s) successfully`)
+  }
+
+  return { annotations: allAnnotations, syntheticEvents: allSyntheticEvents, urgentNotices: allUrgentNotices, processedIds }
 }

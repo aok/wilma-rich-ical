@@ -71,17 +71,10 @@ interface WilmaiConfig {
 }
 
 
-type ScheduleFilter = (lesson: { subject: string }) => boolean
+import { getSchoolConfig } from './schools/index.js'
 
-const TENANT_FILTERS: Record<string, ScheduleFilter> = {
-  'yvkoulut': (lesson) => lesson.subject !== 'Varattu',
-}
-
-function tenantFilter(tenantUrl: string): ScheduleFilter {
-  for (const [key, filter] of Object.entries(TENANT_FILTERS)) {
-    if (tenantUrl.includes(key)) return filter
-  }
-  return () => true
+function baseSubjectCode(code: string): string {
+  return code.replace(/\..+$/, '')
 }
 
 function wilmaConfigPath(): string {
@@ -132,6 +125,28 @@ async function fetchMessageBody(
   }
 }
 
+async function fetchStudentMessages(
+  configPath: string,
+  studentName: string,
+  processedMessageIds: number[],
+): Promise<WilmaMessage[]> {
+  try {
+    const stdout = await runCli(
+      `wilma messages list --student "${studentName}" --limit 30 --json`,
+      configPath,
+    )
+    const msgs = JSON.parse(stdout) as WilmaMessage[]
+    for (const msg of msgs) {
+      if (!processedMessageIds.includes(msg.wilmaId)) {
+        msg.body = await fetchMessageBody(configPath, msg.wilmaId, studentName)
+      }
+    }
+    return msgs
+  } catch {
+    return []
+  }
+}
+
 async function fetchProfile(
   profile: WilmaiProfile,
   processedMessageIds: number[]
@@ -142,11 +157,9 @@ async function fetchProfile(
     const data = JSON.parse(stdout) as WilmaOutput
 
     for (const student of data.students) {
-      for (const msg of student.summary.recentMessages) {
-        if (!processedMessageIds.includes(msg.wilmaId)) {
-          msg.body = await fetchMessageBody(configPath, msg.wilmaId, student.student.name)
-        }
-      }
+      student.summary.recentMessages = await fetchStudentMessages(
+        configPath, student.student.name, processedMessageIds,
+      )
     }
 
     return data
@@ -176,7 +189,7 @@ export interface ExamDetail {
   topic: string | null
 }
 
-export async function fetchSchedule(): Promise<{
+export async function fetchSchedule(childSchools: Record<string, string | undefined> = {}): Promise<{
   schedule: Record<string, Record<string, ScheduleEntry[]>>
   subjectNames: SubjectNames
   exams: Record<string, ExamDetail[]>
@@ -208,14 +221,14 @@ export async function fetchSchedule(): Promise<{
         const overview = await client.overview.get()
 
         for (const hw of overview.homework) {
-          if (hw.subjectCode && hw.subject) subjectNames[hw.subjectCode] = hw.subject
+          if (hw.subjectCode && hw.subject) subjectNames[baseSubjectCode(hw.subjectCode)] = hw.subject
         }
         for (const grade of overview.grades) {
-          if (grade.subjectCode && grade.subject) subjectNames[grade.subjectCode] = grade.subject
+          if (grade.subjectCode && grade.subject) subjectNames[baseSubjectCode(grade.subjectCode)] = grade.subject
         }
         exams[name] = []
         for (const exam of overview.upcomingExams) {
-          if (exam.subjectCode && exam.subject) subjectNames[exam.subjectCode] = exam.subject
+          if (exam.subjectCode && exam.subject) subjectNames[baseSubjectCode(exam.subjectCode)] = exam.subject
           exams[name].push({
             subject: exam.subjectCode || exam.subject,
             date: exam.date,
@@ -224,9 +237,11 @@ export async function fetchSchedule(): Promise<{
           })
         }
 
-        const filter = tenantFilter(profile.tenantUrl)
+        const school = getSchoolConfig(childSchools[name])
+        if (school.subjectNames) Object.assign(subjectNames, school.subjectNames)
+
         for (const lesson of overview.schedule) {
-          if (!filter(lesson)) continue
+          if (school.filter && !school.filter(lesson)) continue
           if (!schedule[name][lesson.date]) schedule[name][lesson.date] = []
           schedule[name][lesson.date].push({
             date: lesson.date,

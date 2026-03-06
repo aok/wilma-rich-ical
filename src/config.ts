@@ -30,18 +30,22 @@ const children = discoverChildren()
 const childTokens: Record<string, string> = {}
 const tokenToChild: Record<string, string> = {}
 
+const childSchools: Record<string, string | undefined> = {}
+
 for (const name of children) {
   const key = `TOKEN_${name.toUpperCase()}`
   const token = process.env[key]
   if (!token) throw new Error(`Missing ${key} — run \`pnpm setup\` to generate tokens`)
   childTokens[name] = token
   tokenToChild[token] = name
+  childSchools[name] = process.env[`SCHOOL_${name.toUpperCase()}`]
 }
 
 export const config = {
   children,
   childTokens,
   tokenToChild,
+  childSchools,
   llm: {
     provider: process.env['LLM_PROVIDER'] ?? 'anthropic',
     model: process.env['LLM_MODEL'] ?? 'claude-haiku-4-5-20251001',

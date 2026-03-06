@@ -34,7 +34,7 @@ export async function runRefresh(): Promise<void> {
   log('[refresh] Fetching Wilma data...')
   const [{ students, errors }, { schedule, subjectNames, exams }] = await Promise.all([
     fetchAllStudents(memory.processed_message_ids),
-    fetchSchedule(),
+    fetchSchedule(config.childSchools),
   ])
 
   if (errors.length > 0) {

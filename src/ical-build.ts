@@ -112,8 +112,12 @@ function vcalendarHeader(childName: string) {
   ].join('\r\n')
 }
 
+function baseCode(code: string): string {
+  return code.replace(/\..+$/, '')
+}
+
 function subjectMatches(entry: ScheduleEntry, subject: string, subjectCode?: string): boolean {
-  if (subjectCode && entry.subjectCode && normalizeSubject(entry.subjectCode) === normalizeSubject(subjectCode)) return true
+  if (subjectCode && entry.subjectCode && baseCode(normalizeSubject(entry.subjectCode)) === baseCode(normalizeSubject(subjectCode))) return true
   return normalizeSubject(entry.subject) === normalizeSubject(subject)
 }
 
@@ -144,7 +148,11 @@ function findFirstClassOnDate(
 }
 
 function displayName(entry: ScheduleEntry, subjectNames: SubjectNames): string {
-  if (entry.subjectCode && subjectNames[entry.subjectCode]) return subjectNames[entry.subjectCode]
+  if (entry.subjectCode) {
+    if (subjectNames[entry.subjectCode]) return subjectNames[entry.subjectCode]
+    const baseCode = entry.subjectCode.replace(/\..+$/, '')
+    if (subjectNames[baseCode]) return subjectNames[baseCode]
+  }
   return entry.subject
 }
 

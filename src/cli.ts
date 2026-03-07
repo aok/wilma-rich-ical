@@ -19,17 +19,25 @@ if (command === 'setup') {
 } else if (command === 'reset') {
   await import('dotenv/config')
   const sub = process.argv[3]
-  const { resetMessages, resetCache, resetTokens } = await import('./reset.js')
+  const { resetMessages, resetSynthetics, resetCache, resetTokens } = await import('./reset.js')
   const { config } = await import('./config.js')
   if (sub === 'messages') {
-    resetMessages(config.memoryPath)
+    const lastArg = process.argv[4]
+    const last = lastArg ? parseInt(lastArg, 10) : undefined
+    if (lastArg && (!last || last <= 0)) {
+      console.error('Usage: wilma-icald reset messages [count]')
+      process.exit(1)
+    }
+    resetMessages(config.memoryPath, last)
+  } else if (sub === 'synthetics') {
+    resetSynthetics(config.memoryPath)
   } else if (sub === 'cache') {
     resetCache(config.memoryPath)
   } else if (sub === 'tokens') {
     resetTokens('.env')
   } else {
     console.error(`Unknown reset target: ${sub}`)
-    console.error('Usage: wilma-icald reset [messages|cache|tokens]')
+    console.error('Usage: wilma-icald reset [messages|synthetics|cache|tokens]')
     process.exit(1)
   }
 } else if (!command) {

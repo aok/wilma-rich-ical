@@ -152,6 +152,24 @@ describe('buildFeed', () => {
     expect(result).toContain('UID:evt-2026-03-12-suomenlinna-retki@wilma-rich-ical')
   })
 
+  it('adds activity icons to liikunta annotations', () => {
+    const cache: Record<string, ScheduleEntry[]> = {
+      '2026-03-05': [
+        { date: '2026-03-05', start: '11:45', end: '12:30', subject: 'Liikunta', teacher: 'Korhonen Mikko' },
+      ],
+      '2026-03-06': [
+        { date: '2026-03-06', start: '11:45', end: '12:30', subject: 'Liikunta', teacher: 'Korhonen Mikko' },
+      ],
+    }
+    const annotations: ScheduleAnnotation[] = [
+      { student: 'Alice', matchDate: '2026-03-05', matchSubject: 'Liikunta', note: 'Ota uimapuku ja pyyhe', activity: 'uinti', expires: '2026-03-06', sourceMessageId: 300 },
+      { student: 'Alice', matchDate: '2026-03-06', matchSubject: 'Liikunta', note: 'Pukekaa lämpimästi', activity: 'ulkoliikunta', expires: '2026-03-07', sourceMessageId: 301 },
+    ]
+    const result = buildFeed('Alice', cache, EMPTY_SUMMARY, annotations, [])
+    expect(result).toContain('SUMMARY:🏊 Liikunta: Ota uimapuku ja pyyhe')
+    expect(result).toContain('SUMMARY:⚽️ Liikunta: Pukekaa lämpimästi')
+  })
+
   it('subject matching is case-insensitive', () => {
     const annotations: ScheduleAnnotation[] = [{
       student: 'Alice',

@@ -23,7 +23,8 @@ Palauta VAIN JSON-objekti tässä muodossa:
     {
       "matchDate": "YYYY-MM-DD",
       "matchSubject": "täsmälleen sama aineen nimi kuin lukujärjestyksessä",
-      "note": "lyhyt suomenkielinen kuvaus"
+      "note": "lyhyt suomenkielinen kuvaus",
+      "activity": "uinti | luistelu | hiihto | ulkoliikunta | sisäliikunta | null"
     }
   ],
   "syntheticEvents": [
@@ -47,7 +48,9 @@ Jos viestissä ei ole toimintaa vaativaa tietoa, palauta tyhjät taulukot.
 
 Tärkeät säännöt annotations-kentälle:
 - matchDate: valitse AINOASTAAN jokin annetussa lukujärjestyksessä esiintyvistä päivämääristä. Älä johda päivämäärää viestin sisällöstä.
-- matchSubject: kopioi TÄSMÄLLEEN sama merkkijono kuin lukujärjestyksessä — älä muuta, käännä tai lyhennä sitä.`
+- matchSubject: kopioi TÄSMÄLLEEN sama merkkijono kuin lukujärjestyksessä — älä muuta, käännä tai lyhennä sitä.
+
+Liikuntaviestit: Jos viesti kertoo liikuntatuntien sisällöstä, luo annotation JOKAISELLE lukujärjestyksen liikuntatunnille johon tieto pätee. Aseta activity-kenttään yksi: "uinti", "luistelu", "hiihto", "ulkoliikunta" tai "sisäliikunta". note-kenttään kirjoita lyhyt kuvaus ja mahdolliset tarvikkeet (esim. "Ota uimapuku ja pyyhe"). Jätä activity null:ksi jos kyse ei ole liikunnasta.`
 
 function scheduleFromDate(
   childSchedule: Record<string, ScheduleEntry[]>,

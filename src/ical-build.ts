@@ -34,6 +34,15 @@ function normalizeSubject(s: string): string {
   return s.toLowerCase().trim()
 }
 
+const ACTIVITY_ICONS: Record<string, string> = {
+  uinti: '🏊',
+  luistelu: '⛸️',
+  hiihto: '🎿',
+  ulkoliikunta: '⚽️',
+  sisäliikunta: '🏀',
+}
+
+
 function scheduleUid(entry: ScheduleEntry): string {
   const slug = entry.subject.toLowerCase().replace(/[^a-zäöå0-9]+/g, '-').replace(/-+$/, '')
   return `sched-${entry.date}-${entry.start.replace(':', '')}-${slug}@wilma-rich-ical`
@@ -185,7 +194,7 @@ export function buildFeed(
     if (!entries) continue
     for (const entry of entries) {
       if (normalizeSubject(entry.subject) === normalizeSubject(a.matchSubject)) {
-        addNote(entry, a.note)
+        addNote(entry, a.note, a.activity ? ACTIVITY_ICONS[a.activity] : undefined)
       }
     }
   }

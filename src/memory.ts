@@ -3,11 +3,14 @@ import { dirname } from 'node:path'
 import { formatInTimeZone } from 'date-fns-tz'
 import { subDays } from 'date-fns'
 
+export type Activity = 'uinti' | 'luistelu' | 'hiihto' | 'ulkoliikunta' | 'sisäliikunta'
+
 export interface ScheduleAnnotation {
   student: string
   matchDate: string       // yyyy-MM-dd
   matchSubject: string
   note: string
+  activity?: Activity
   expires: string         // yyyy-MM-dd
   sourceMessageId: number
 }

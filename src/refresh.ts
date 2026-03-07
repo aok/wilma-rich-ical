@@ -8,6 +8,18 @@ import { buildFeed } from './ical-build.js'
 import { feedCache } from './server.js'
 import { log, logError } from './logger.js'
 
+function deduplicateSynthetics(events: SyntheticEvent[]): SyntheticEvent[] {
+  const byKey = new Map<string, SyntheticEvent>()
+  for (const e of events) {
+    const key = `${e.student}:${e.date}:${e.eventKey}`
+    const existing = byKey.get(key)
+    if (!existing || e.sourceMessageId > existing.sourceMessageId) {
+      byKey.set(key, e)
+    }
+  }
+  return [...byKey.values()]
+}
+
 function scheduleChanged(
   oldCache: Record<string, ScheduleEntry[]>,
   newEntries: Record<string, Record<string, ScheduleEntry[]>>,
@@ -99,12 +111,12 @@ export async function runRefresh(): Promise<void> {
       ),
       ...newAnnotations,
     ],
-    synthetic_events: [
+    synthetic_events: deduplicateSynthetics([
       ...baseSynthetics.filter(
         e => !newSyntheticEvents.some(n => n.sourceMessageId === e.sourceMessageId)
       ),
       ...newSyntheticEvents,
-    ],
+    ]),
     urgent_notices: [
       ...memory.urgent_notices.filter(
         n => !newUrgentNotices.some(u => u.sourceMessageId === n.sourceMessageId)

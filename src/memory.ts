@@ -15,6 +15,9 @@ export interface ScheduleAnnotation {
 export interface SyntheticEvent {
   student: string
   date: string            // yyyy-MM-dd
+  start?: string          // HH:MM (when the message includes a specific time)
+  end?: string            // HH:MM
+  eventKey: string        // short kebab-case identifier for deduplication
   summary: string
   expires: string         // yyyy-MM-dd
   sourceMessageId: number

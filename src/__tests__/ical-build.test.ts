@@ -82,9 +82,9 @@ describe('buildFeed', () => {
       ],
     }
     const result = buildFeed('Alice', cache, summary, [], [])
-    const march7event = result.split('BEGIN:VEVENT').find(e => e.includes('20260307'))!
+    const march7event = result.split('BEGIN:VEVENT').find(e => e.includes('DTSTART;TZID=Europe/Helsinki:20260307'))!
     expect(march7event).toContain('SUMMARY:📚 Matematiikka: Sivut 42-43')
-    const march5event = result.split('BEGIN:VEVENT').find(e => e.includes('20260305'))!
+    const march5event = result.split('BEGIN:VEVENT').find(e => e.includes('DTSTART;TZID=Europe/Helsinki:20260305'))!
     expect(march5event).not.toContain('📚')
   })
 
@@ -102,16 +102,17 @@ describe('buildFeed', () => {
       ],
     }
     const result = buildFeed('Alice', cache, summary, [], [])
-    const englishEvent = result.split('BEGIN:VEVENT').find(e => e.includes('Englanti'))!
+    const englishEvent = result.split('BEGIN:VEVENT').find(e => e.includes('DTSTART;TZID=Europe/Helsinki:20260310T101500'))!
     expect(englishEvent).toContain('SUMMARY:📝 Englanti: KOE')
-    const finnishEvent = result.split('BEGIN:VEVENT').find(e => e.includes('Äidinkieli'))!
+    const finnishEvent = result.split('BEGIN:VEVENT').find(e => e.includes('DTSTART;TZID=Europe/Helsinki:20260310T081500'))!
     expect(finnishEvent).not.toContain('📝')
   })
 
-  it('adds synthetic events as all-day events', () => {
+  it('adds synthetic events without times as all-day events', () => {
     const synthetics: SyntheticEvent[] = [{
       student: 'Alice',
       date: '2026-03-12',
+      eventKey: 'suomenlinna-retki',
       summary: 'Retki Suomenlinnaan',
       expires: '2026-03-13',
       sourceMessageId: 200,
@@ -121,16 +122,34 @@ describe('buildFeed', () => {
     expect(result).toContain('DTSTART;VALUE=DATE:20260312')
   })
 
-  it('uses deterministic UIDs for synthetic events', () => {
+  it('adds synthetic events with times as timed events', () => {
     const synthetics: SyntheticEvent[] = [{
       student: 'Alice',
       date: '2026-03-12',
+      start: '13:30',
+      end: '17:00',
+      eventKey: 'suomenlinna-retki',
+      summary: 'Retki Suomenlinnaan klo 13:30-17:00',
+      expires: '2026-03-13',
+      sourceMessageId: 200,
+    }]
+    const result = buildFeed('Alice', SCHEDULE_CACHE, EMPTY_SUMMARY, [], synthetics)
+    expect(result).toContain('SUMMARY:Retki Suomenlinnaan klo 13:30-17:00')
+    expect(result).toContain('DTSTART;TZID=Europe/Helsinki:20260312T133000')
+    expect(result).toContain('DTEND;TZID=Europe/Helsinki:20260312T170000')
+  })
+
+  it('uses eventKey for deterministic UIDs', () => {
+    const synthetics: SyntheticEvent[] = [{
+      student: 'Alice',
+      date: '2026-03-12',
+      eventKey: 'suomenlinna-retki',
       summary: 'Retki Suomenlinnaan',
       expires: '2026-03-13',
       sourceMessageId: 200,
     }]
     const result = buildFeed('Alice', SCHEDULE_CACHE, EMPTY_SUMMARY, [], synthetics)
-    expect(result).toContain('UID:evt-2026-03-12-retki-suomenlinnaan@wilma-rich-ical')
+    expect(result).toContain('UID:evt-2026-03-12-suomenlinna-retki@wilma-rich-ical')
   })
 
   it('subject matching is case-insensitive', () => {
@@ -190,7 +209,7 @@ describe('buildFeed', () => {
       ],
     }
     const result = buildFeed('Alice', cache, summary, [], [], subjectNames)
-    const march7event = result.split('BEGIN:VEVENT').find(e => e.includes('20260307'))!
+    const march7event = result.split('BEGIN:VEVENT').find(e => e.includes('DTSTART;TZID=Europe/Helsinki:20260307'))!
     expect(march7event).toContain('SUMMARY:📚 Matematiikka: Sivut 42-43')
   })
 

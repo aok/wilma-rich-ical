@@ -29,6 +29,9 @@ Palauta VAIN JSON-objekti tässä muodossa:
   "syntheticEvents": [
     {
       "date": "YYYY-MM-DD",
+      "start": "HH:MM tai null",
+      "end": "HH:MM tai null",
+      "eventKey": "lyhyt-kebab-tunniste",
       "summary": "lyhyt suomenkielinen kuvaus"
     }
   ],
@@ -38,7 +41,7 @@ Palauta VAIN JSON-objekti tässä muodossa:
 }
 
 Käytä annotations kun viesti viittaa lukujärjestyksessä olevaan tuntiin.
-Käytä syntheticEvents kun viesti kertoo jostain muusta tapahtumasta.
+Käytä syntheticEvents kun viesti kertoo jostain muusta tapahtumasta. Jos viestissä on kellonajat, anna ne start/end-kenttiin (HH:MM). eventKey on lyhyt kebab-case-tunniste tapahtumalle (esim. "heureka-retki", "uimahalli-kaynti") — sama tapahtuma eri viesteissä saa SAMAN eventKey:n.
 Käytä urgentNotices VAIN jos viesti sisältää välittömän toiminnan vaativan varoituksen — esim. oppilas on vaarassa hylätä kurssin poissaolojen takia, tai huomisen lukujärjestys muuttuu kriittisesti. ÄLÄ käytä urgentNotices rutiini-ilmoituksiin kuten kuukausitiedotteet, poissaolokoosteviestit, rekrytointi-ilmoitukset, tapahtumamuistutukset tai lomakkeiden palautuspyynnöt.
 Jos viestissä ei ole toimintaa vaativaa tietoa, palauta tyhjät taulukot.
 
@@ -65,7 +68,7 @@ async function processMessage(
   modelId: string,
 ): Promise<{
   annotations: Omit<ScheduleAnnotation, 'student' | 'expires' | 'sourceMessageId'>[]
-  syntheticEvents: Omit<SyntheticEvent, 'student' | 'expires' | 'sourceMessageId'>[]
+  syntheticEvents: (Omit<SyntheticEvent, 'student' | 'expires' | 'sourceMessageId' | 'eventKey'> & { eventKey?: string })[]
   urgentNotices: string[]
 }> {
   const messageDate = msg.sentAt.slice(0, 10)
@@ -118,7 +121,16 @@ export async function processNewMessages(
           allAnnotations.push({ ...a, student: childName, expires: formatInTimeZone(addDays(parseISO(a.matchDate), 1), 'Europe/Helsinki', 'yyyy-MM-dd'), sourceMessageId: msg.wilmaId })
         }
         for (const e of result.syntheticEvents) {
-          allSyntheticEvents.push({ ...e, student: childName, expires: formatInTimeZone(addDays(parseISO(e.date), 1), 'Europe/Helsinki', 'yyyy-MM-dd'), sourceMessageId: msg.wilmaId })
+          allSyntheticEvents.push({
+            student: childName,
+            date: e.date,
+            ...(e.start ? { start: e.start } : {}),
+            ...(e.end ? { end: e.end } : {}),
+            eventKey: e.eventKey || e.summary.toLowerCase().replace(/[^a-zäöå0-9]+/g, '-').replace(/-+$/, ''),
+            summary: e.summary,
+            expires: formatInTimeZone(addDays(parseISO(e.date), 1), 'Europe/Helsinki', 'yyyy-MM-dd'),
+            sourceMessageId: msg.wilmaId,
+          })
         }
         for (const notice of result.urgentNotices) {
           allUrgentNotices.push({

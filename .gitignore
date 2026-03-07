@@ -2,7 +2,6 @@ node_modules/
 dist/
 .env
 *.json.tmp
-data/*
-!data/.gitkeep
+data/
 .worktrees/
 deploy.sh

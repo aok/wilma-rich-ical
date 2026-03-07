@@ -227,11 +227,12 @@ export function buildFeed(
   }
 
   for (const se of childSynthetics) {
-    events.push(allDayEvent(
-      makeUid('evt', se.date, se.summary),
-      se.date,
-      se.summary,
-    ))
+    const uid = makeUid('evt', se.date, se.eventKey || se.summary)
+    if (se.start && se.end) {
+      events.push(timedEvent(uid, se.date, se.start, se.end, se.summary))
+    } else {
+      events.push(allDayEvent(uid, se.date, se.summary))
+    }
   }
 
   const parts = [vcalendarHeader(childName), ...events, 'END:VCALENDAR']

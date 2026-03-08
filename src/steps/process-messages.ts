@@ -1,6 +1,8 @@
 import { generateText } from 'ai'
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { createOpenAI } from '@ai-sdk/openai'
+import { appendFileSync, mkdirSync } from 'node:fs'
+import { dirname } from 'node:path'
 import { addDays, parseISO } from 'date-fns'
 import { formatInTimeZone } from 'date-fns-tz'
 import type { WilmaStudent, WilmaMessage, SubjectNames } from '../wilma.js'
@@ -83,6 +85,7 @@ async function processMessage(
   provider: string,
   modelId: string,
   subjectNames: SubjectNames,
+  logPath?: string,
 ): Promise<{
   annotations: Omit<ScheduleAnnotation, 'student' | 'expires' | 'sourceMessageId'>[]
   syntheticEvents: (Omit<SyntheticEvent, 'student' | 'expires' | 'sourceMessageId' | 'eventKey'> & { eventKey?: string })[]
@@ -102,10 +105,21 @@ async function processMessage(
   try {
     const json = text.trim().replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '')
     const parsed = JSON.parse(json)
-    return { annotations: parsed.annotations ?? [], syntheticEvents: parsed.syntheticEvents ?? [], urgentNotices: parsed.urgentNotices ?? [] }
+    const result = { annotations: parsed.annotations ?? [], syntheticEvents: parsed.syntheticEvents ?? [], urgentNotices: parsed.urgentNotices ?? [] }
+    debugLog(logPath, { ts: new Date().toISOString(), child: childName, msgId: msg.wilmaId, prompt, response: text, parsed: result })
+    return result
   } catch {
+    debugLog(logPath, { ts: new Date().toISOString(), child: childName, msgId: msg.wilmaId, prompt, response: text, error: 'parse_failed' })
     return { annotations: [], syntheticEvents: [], urgentNotices: [] }
   }
+}
+
+function debugLog(path: string | undefined, entry: Record<string, unknown>) {
+  if (!path) return
+  try {
+    mkdirSync(dirname(path), { recursive: true })
+    appendFileSync(path, JSON.stringify(entry) + '\n')
+  } catch {}
 }
 
 function isTime(v: unknown): v is string {
@@ -122,6 +136,7 @@ export async function processNewMessages(
   modelId: string,
   allSchedules: Record<string, Record<string, ScheduleEntry[]>>,
   subjectNames: SubjectNames = {},
+  debugLogPath?: string,
 ): Promise<{ annotations: ScheduleAnnotation[]; syntheticEvents: SyntheticEvent[]; urgentNotices: UrgentNotice[]; processedIds: number[] }> {
   const allAnnotations: ScheduleAnnotation[] = []
   const allSyntheticEvents: SyntheticEvent[] = []
@@ -136,7 +151,7 @@ export async function processNewMessages(
       if (!msg.body) continue
       if (callCount > 0) await sleep(THROTTLE_MS)
       try {
-        const result = await processMessage(childName, msg, childSchedule, provider, modelId, subjectNames)
+        const result = await processMessage(childName, msg, childSchedule, provider, modelId, subjectNames, debugLogPath)
         callCount++
         processedIds.push(msg.wilmaId)
         for (const a of result.annotations) {

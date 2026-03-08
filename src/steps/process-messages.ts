@@ -3,7 +3,7 @@ import { createAnthropic } from '@ai-sdk/anthropic'
 import { createOpenAI } from '@ai-sdk/openai'
 import { addDays, parseISO } from 'date-fns'
 import { formatInTimeZone } from 'date-fns-tz'
-import type { WilmaStudent, WilmaMessage } from '../wilma.js'
+import type { WilmaStudent, WilmaMessage, SubjectNames } from '../wilma.js'
 import { firstName } from '../wilma.js'
 import type { ScheduleAnnotation, ScheduleEntry, SyntheticEvent, UrgentNotice } from '../memory.js'
 import { log, logError } from '../logger.js'
@@ -48,18 +48,31 @@ Jos viestissä ei ole toimintaa vaativaa tietoa, palauta tyhjät taulukot.
 
 Tärkeät säännöt annotations-kentälle:
 - matchDate: valitse AINOASTAAN jokin annetussa lukujärjestyksessä esiintyvistä päivämääristä. Älä johda päivämäärää viestin sisällöstä.
-- matchSubject: kopioi TÄSMÄLLEEN sama merkkijono kuin lukujärjestyksessä — älä muuta, käännä tai lyhennä sitä.
+- matchSubject: kopioi TÄSMÄLLEEN lukujärjestyksen subject-kentän arvo — älä käytä displayName-arvoa. Esim. jos lukujärjestyksessä on {"subject": "LPa6 5kevät", "displayName": "Liikunta"}, anna matchSubject: "LPa6 5kevät". displayName kertoo aineen selkokielisen nimen jotta ymmärrät mihin aineeseen viesti viittaa.
 
 Liikuntaviestit: Jos viesti kertoo liikuntatuntien sisällöstä, luo annotation JOKAISELLE lukujärjestyksen liikuntatunnille johon tieto pätee. Aseta activity-kenttään yksi: "uinti", "luistelu", "hiihto", "ulkoliikunta" tai "sisäliikunta". note-kenttään kirjoita lyhyt kuvaus ja mahdolliset tarvikkeet (esim. "Ota uimapuku ja pyyhe"). Jätä activity null:ksi jos kyse ei ole liikunnasta.`
+
+function resolveDisplayName(entry: ScheduleEntry, subjectNames: SubjectNames): string | undefined {
+  if (entry.subjectCode) {
+    if (subjectNames[entry.subjectCode]) return subjectNames[entry.subjectCode]
+    const base = entry.subjectCode.replace(/\..+$/, '')
+    if (subjectNames[base]) return subjectNames[base]
+  }
+  return undefined
+}
 
 function scheduleFromDate(
   childSchedule: Record<string, ScheduleEntry[]>,
   fromDate: string,
-): { date: string; start: string; end: string; subject: string }[] {
+  subjectNames: SubjectNames,
+): { date: string; start: string; end: string; subject: string; displayName?: string }[] {
   const endDate = formatInTimeZone(addDays(parseISO(fromDate), 28), 'Europe/Helsinki', 'yyyy-MM-dd')
   const dates = Object.keys(childSchedule).filter(d => d >= fromDate && d <= endDate).sort()
   return dates.flatMap(date =>
-    childSchedule[date].map(e => ({ date: e.date, start: e.start, end: e.end, subject: e.subject }))
+    childSchedule[date].map(e => {
+      const dn = resolveDisplayName(e, subjectNames)
+      return { date: e.date, start: e.start, end: e.end, subject: e.subject, ...(dn ? { displayName: dn } : {}) }
+    })
   )
 }
 
@@ -69,13 +82,14 @@ async function processMessage(
   childSchedule: Record<string, ScheduleEntry[]>,
   provider: string,
   modelId: string,
+  subjectNames: SubjectNames,
 ): Promise<{
   annotations: Omit<ScheduleAnnotation, 'student' | 'expires' | 'sourceMessageId'>[]
   syntheticEvents: (Omit<SyntheticEvent, 'student' | 'expires' | 'sourceMessageId' | 'eventKey'> & { eventKey?: string })[]
   urgentNotices: string[]
 }> {
   const messageDate = msg.sentAt.slice(0, 10)
-  const schedule = scheduleFromDate(childSchedule, messageDate)
+  const schedule = scheduleFromDate(childSchedule, messageDate, subjectNames)
   const prompt = `Viestin päivämäärä: ${messageDate}\nOpiskelija: ${childName}\nViesti: ${msg.body}\nLukujärjestys (4 viikkoa eteenpäin):\n${JSON.stringify(schedule, null, 2)}`
 
   const { text } = await generateText({
@@ -107,6 +121,7 @@ export async function processNewMessages(
   provider: string,
   modelId: string,
   allSchedules: Record<string, Record<string, ScheduleEntry[]>>,
+  subjectNames: SubjectNames = {},
 ): Promise<{ annotations: ScheduleAnnotation[]; syntheticEvents: SyntheticEvent[]; urgentNotices: UrgentNotice[]; processedIds: number[] }> {
   const allAnnotations: ScheduleAnnotation[] = []
   const allSyntheticEvents: SyntheticEvent[] = []
@@ -121,7 +136,7 @@ export async function processNewMessages(
       if (!msg.body) continue
       if (callCount > 0) await sleep(THROTTLE_MS)
       try {
-        const result = await processMessage(childName, msg, childSchedule, provider, modelId)
+        const result = await processMessage(childName, msg, childSchedule, provider, modelId, subjectNames)
         callCount++
         processedIds.push(msg.wilmaId)
         for (const a of result.annotations) {

@@ -92,7 +92,7 @@ export async function runRefresh(): Promise<void> {
     log(`[refresh] Processing ${messagesWithBody.length} new message(s)...`)
   }
 
-  const result = await processNewMessages(filteredStudents, config.llm.provider, config.llm.model, allChildSchedules)
+  const result = await processNewMessages(filteredStudents, config.llm.provider, config.llm.model, allChildSchedules, subjectNames)
   const { annotations: newAnnotations, syntheticEvents: newSyntheticEvents, urgentNotices: newUrgentNotices, processedIds: successfulIds } = result
 
   for (const notice of newUrgentNotices) {

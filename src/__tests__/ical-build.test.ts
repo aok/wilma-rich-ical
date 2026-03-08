@@ -170,6 +170,20 @@ describe('buildFeed', () => {
     expect(result).toContain('SUMMARY:⚽️ Liikunta: Pukekaa lämpimästi')
   })
 
+  it('matches annotations by raw subject when subject uses codes', () => {
+    const cache: Record<string, ScheduleEntry[]> = {
+      '2026-03-05': [
+        { date: '2026-03-05', start: '11:45', end: '12:30', subject: 'LPa6 5kevät', subjectCode: 'LPa6', teacher: 'Korhonen Mikko' },
+      ],
+    }
+    const subjectNames = { 'LPa6': 'Liikunta' }
+    const annotations: ScheduleAnnotation[] = [
+      { student: 'Alice', matchDate: '2026-03-05', matchSubject: 'LPa6 5kevät', note: 'Sisäliikuntaa', activity: 'sisäliikunta', expires: '2026-03-06', sourceMessageId: 300 },
+    ]
+    const result = buildFeed('Alice', cache, EMPTY_SUMMARY, annotations, [], subjectNames)
+    expect(result).toContain('SUMMARY:🏀 Liikunta: Sisäliikuntaa')
+  })
+
   it('subject matching is case-insensitive', () => {
     const annotations: ScheduleAnnotation[] = [{
       student: 'Alice',

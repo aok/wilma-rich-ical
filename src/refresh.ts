@@ -8,6 +8,18 @@ import { buildFeed } from './ical-build.js'
 import { feedCache } from './server.js'
 import { log, logError } from './logger.js'
 
+function deduplicateAnnotations(annotations: ScheduleAnnotation[]): ScheduleAnnotation[] {
+  const bySlot = new Map<string, ScheduleAnnotation>()
+  for (const a of annotations) {
+    const key = `${a.student}:${a.matchDate}:${a.matchSubject}`
+    const existing = bySlot.get(key)
+    if (!existing || a.sourceMessageId > existing.sourceMessageId) {
+      bySlot.set(key, a)
+    }
+  }
+  return [...bySlot.values()]
+}
+
 function deduplicateSynthetics(events: SyntheticEvent[]): SyntheticEvent[] {
   const byKey = new Map<string, SyntheticEvent>()
   for (const e of events) {
@@ -106,12 +118,12 @@ export async function runRefresh(): Promise<void> {
   const updatedMemory = pruneExpired({
     ...memory,
     schedule_cache: updatedScheduleCache,
-    message_annotations: [
+    message_annotations: deduplicateAnnotations([
       ...baseAnnotations.filter(
         a => !newAnnotations.some(n => n.sourceMessageId === a.sourceMessageId)
       ),
       ...newAnnotations,
-    ],
+    ]),
     synthetic_events: deduplicateSynthetics([
       ...baseSynthetics.filter(
         e => !newSyntheticEvents.some(n => n.sourceMessageId === e.sourceMessageId)

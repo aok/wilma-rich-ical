@@ -189,27 +189,15 @@ export function buildFeed(
     }
   }
 
-  const entryActivity = new Map<string, { icon: string; msgId: number }>()
   for (const a of childAnnotations) {
     const entries = scheduleCache[a.matchDate]
     if (!entries) continue
     for (const entry of entries) {
       if (normalizeSubject(entry.subject) === normalizeSubject(a.matchSubject)) {
-        const uid = scheduleUid(entry)
         const icon = a.activity ? ACTIVITY_ICONS[a.activity] : undefined
-        if (icon) {
-          const prev = entryActivity.get(uid)
-          if (!prev || a.sourceMessageId > prev.msgId) {
-            entryActivity.set(uid, { icon, msgId: a.sourceMessageId })
-          }
-        }
-        addNote(entry, a.note)
+        addNote(entry, a.note, icon)
       }
     }
-  }
-  for (const [uid, { icon }] of entryActivity) {
-    if (!entryIcons.has(uid)) entryIcons.set(uid, [])
-    entryIcons.get(uid)!.push(icon)
   }
 
   for (const hw of summary.recentHomework) {

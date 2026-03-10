@@ -78,6 +78,17 @@ function scheduleFromDate(
   )
 }
 
+function existingSyntheticsInWindow(
+  synthetics: SyntheticEvent[],
+  childName: string,
+  fromDate: string,
+): { date: string; eventKey: string; summary: string; start?: string; end?: string }[] {
+  const endDate = formatInTimeZone(addDays(parseISO(fromDate), 28), 'Europe/Helsinki', 'yyyy-MM-dd')
+  return synthetics
+    .filter(e => e.student === childName && e.date >= fromDate && e.date <= endDate)
+    .map(e => ({ date: e.date, eventKey: e.eventKey, summary: e.summary, ...(e.start ? { start: e.start } : {}), ...(e.end ? { end: e.end } : {}) }))
+}
+
 async function processMessage(
   childName: string,
   msg: WilmaMessage,
@@ -85,6 +96,7 @@ async function processMessage(
   provider: string,
   modelId: string,
   subjectNames: SubjectNames,
+  existingSynthetics: SyntheticEvent[],
   logPath?: string,
 ): Promise<{
   annotations: Omit<ScheduleAnnotation, 'student' | 'expires' | 'sourceMessageId'>[]
@@ -93,7 +105,9 @@ async function processMessage(
 }> {
   const messageDate = msg.sentAt.slice(0, 10)
   const schedule = scheduleFromDate(childSchedule, messageDate, subjectNames)
-  const prompt = `Viestin päivämäärä: ${messageDate}\nOpiskelija: ${childName}\nViesti: ${msg.body}\nLukujärjestys (4 viikkoa eteenpäin):\n${JSON.stringify(schedule, null, 2)}`
+  const existing = existingSyntheticsInWindow(existingSynthetics, childName, messageDate)
+  const existingSection = existing.length > 0 ? `\nOlemassa olevat tapahtumat (käytä samaa eventKey:tä jos viesti liittyy samaan tapahtumaan):\n${JSON.stringify(existing, null, 2)}` : ''
+  const prompt = `Viestin päivämäärä: ${messageDate}\nOpiskelija: ${childName}\nViesti: ${msg.body}\nLukujärjestys (4 viikkoa eteenpäin):\n${JSON.stringify(schedule, null, 2)}${existingSection}`
 
   const { text } = await generateText({
     model: getModel(provider, modelId),
@@ -136,6 +150,7 @@ export async function processNewMessages(
   modelId: string,
   allSchedules: Record<string, Record<string, ScheduleEntry[]>>,
   subjectNames: SubjectNames = {},
+  existingSynthetics: SyntheticEvent[] = [],
   debugLogPath?: string,
 ): Promise<{ annotations: ScheduleAnnotation[]; syntheticEvents: SyntheticEvent[]; urgentNotices: UrgentNotice[]; processedIds: number[] }> {
   const allAnnotations: ScheduleAnnotation[] = []
@@ -151,7 +166,7 @@ export async function processNewMessages(
       if (!msg.body) continue
       if (callCount > 0) await sleep(THROTTLE_MS)
       try {
-        const result = await processMessage(childName, msg, childSchedule, provider, modelId, subjectNames, debugLogPath)
+        const result = await processMessage(childName, msg, childSchedule, provider, modelId, subjectNames, [...existingSynthetics, ...allSyntheticEvents], debugLogPath)
         callCount++
         processedIds.push(msg.wilmaId)
         for (const a of result.annotations) {

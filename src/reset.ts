@@ -27,9 +27,8 @@ export function resetSynthetics(memoryPath: string): void {
   const mem = readMemory(memoryPath)
   const sourceIds = new Set(mem.synthetic_events.map(e => e.sourceMessageId))
   mem.processed_message_ids = mem.processed_message_ids.filter(id => !sourceIds.has(id))
-  mem.synthetic_events = []
   writeMemory(memoryPath, mem)
-  console.log(`Cleared ${sourceIds.size} synthetic event(s). Their source messages will be reprocessed.`)
+  console.log(`Marked ${sourceIds.size} synthetic event source message(s) for reprocessing. Existing events kept as fallback.`)
   console.log('Restart the service to reprocess.')
 }
 

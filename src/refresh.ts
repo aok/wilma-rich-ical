@@ -105,7 +105,7 @@ export async function runRefresh(): Promise<void> {
   }
 
   const llmLogPath = config.memoryPath.replace(/[^/]+$/, 'llm-debug.jsonl')
-  const result = await processNewMessages(filteredStudents, config.llm.provider, config.llm.model, allChildSchedules, subjectNames, llmLogPath)
+  const result = await processNewMessages(filteredStudents, config.llm.provider, config.llm.model, allChildSchedules, subjectNames, memory.synthetic_events, llmLogPath)
   const { annotations: newAnnotations, syntheticEvents: newSyntheticEvents, urgentNotices: newUrgentNotices, processedIds: successfulIds } = result
 
   for (const notice of newUrgentNotices) {

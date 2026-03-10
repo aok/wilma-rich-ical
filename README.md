@@ -13,17 +13,18 @@ Self-hosted server that builds enriched iCal feeds from Wilma data. Homework, ex
    - **Homework** — annotated on the next class of that subject (homework date = given date, due = next class)
    - **Exams** — annotated on the first class of that subject on the exam date
    - **Synthetic events** — events mentioned in messages but not on the timetable
-5. Serves one iCal feed per child at `GET /<secret-token>`
+5. Serves one iCal feed per child at `GET /feed/<token>/calendar.ics`
 
 ## Prerequisites
 
 - Node.js 20+
 - An LLM API key (Anthropic or OpenAI)
+- A Wilma guardian (huoltaja) account
 
 ## Install
 
 ```bash
-npm install -g wilma-rich-ical
+npm install -g https://github.com/aok/wilma-rich-ical.git
 mkdir wilma-icald && cd wilma-icald
 wilma-icald setup
 ```
@@ -36,7 +37,7 @@ Setup authenticates with Wilma, asks for your LLM key and an optional Cloudflare
 
 Leave the tunnel hostname blank during setup. The server starts as a detached process with a temporary [quick tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/) URL. The URL changes on every restart and the process does not survive a reboot.
 
-### Persistent service (requires sudo and Cloudflare account)
+### Persistent service (requires Cloudflare account)
 
 For stable URLs that survive reboots:
 
@@ -45,7 +46,9 @@ For stable URLs that survive reboots:
 3. Install cloudflared on the server: `sudo cloudflared service install <token>`
 4. Run `wilma-icald setup` and enter the tunnel hostname
 
-Setup writes a service plist (macOS) or systemd unit (Linux) to the working directory. If you have sudo, it installs automatically. If setup runs as a non-admin user, it prints the commands for an admin to run:
+On **Linux**, setup installs a user-level systemd unit — no sudo needed.
+
+On **macOS**, setup writes a launchd plist. If you have sudo, it installs automatically. If setup runs as a non-admin user, it prints the commands for an admin to run:
 
 ```bash
 sudo cp wilma-icald.plist /Library/LaunchDaemons/com.wilma-rich-ical.plist

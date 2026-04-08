@@ -68,7 +68,7 @@ function scheduleFromDate(
   fromDate: string,
   subjectNames: SubjectNames,
 ): { date: string; start: string; end: string; subject: string; displayName?: string }[] {
-  const endDate = formatInTimeZone(addDays(parseISO(fromDate), 28), 'Europe/Helsinki', 'yyyy-MM-dd')
+  const endDate = formatInTimeZone(addDays(parseISO(fromDate), 56), 'Europe/Helsinki', 'yyyy-MM-dd')
   const dates = Object.keys(childSchedule).filter(d => d >= fromDate && d <= endDate).sort()
   return dates.flatMap(date =>
     childSchedule[date].map(e => {
@@ -83,7 +83,7 @@ function existingSyntheticsInWindow(
   childName: string,
   fromDate: string,
 ): { date: string; eventKey: string; summary: string; start?: string; end?: string }[] {
-  const endDate = formatInTimeZone(addDays(parseISO(fromDate), 28), 'Europe/Helsinki', 'yyyy-MM-dd')
+  const endDate = formatInTimeZone(addDays(parseISO(fromDate), 56), 'Europe/Helsinki', 'yyyy-MM-dd')
   return synthetics
     .filter(e => e.student === childName && e.date >= fromDate && e.date <= endDate)
     .map(e => ({ date: e.date, eventKey: e.eventKey, summary: e.summary, ...(e.start ? { start: e.start } : {}), ...(e.end ? { end: e.end } : {}) }))
@@ -107,7 +107,7 @@ async function processMessage(
   const schedule = scheduleFromDate(childSchedule, messageDate, subjectNames)
   const existing = existingSyntheticsInWindow(existingSynthetics, childName, messageDate)
   const existingSection = existing.length > 0 ? `\nOlemassa olevat tapahtumat (käytä samaa eventKey:tä jos viesti liittyy samaan tapahtumaan):\n${JSON.stringify(existing, null, 2)}` : ''
-  const prompt = `Viestin päivämäärä: ${messageDate}\nOpiskelija: ${childName}\nViesti: ${msg.body}\nLukujärjestys (4 viikkoa eteenpäin):\n${JSON.stringify(schedule, null, 2)}${existingSection}`
+  const prompt = `Viestin päivämäärä: ${messageDate}\nOpiskelija: ${childName}\nViesti: ${msg.body}\nLukujärjestys (8 viikkoa eteenpäin):\n${JSON.stringify(schedule, null, 2)}${existingSection}`
 
   const { text } = await generateText({
     model: getModel(provider, modelId),

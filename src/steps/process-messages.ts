@@ -44,13 +44,14 @@ Palauta VAIN JSON-objekti tässä muodossa:
 }
 
 Käytä annotations kun viesti viittaa lukujärjestyksessä olevaan tuntiin.
-Käytä syntheticEvents kun viesti kertoo jostain muusta tapahtumasta. eventKey on lyhyt kebab-case-tunniste tapahtumalle (esim. "heureka-retki", "uimahalli-kaynti") — sama tapahtuma eri viesteissä saa SAMAN eventKey:n. TÄRKEÄÄ: Jos viestissä mainitaan kellonaikoja (esim. "klo 13.40", "klo 10-14", "paluu n. klo 18"), poimi ne start- ja end-kenttiin muodossa HH:MM. Jätä start ja end pois jos kellonaikoja ei mainita.
+Käytä syntheticEvents kun viesti kertoo tapahtumasta joka EI ole lukujärjestyksessä — myös silloin kun viestissä mainitaan päivämääriä joilla ei ole kyseistä ainetta lukujärjestyksessä. Esim. jos viesti kertoo uinnista torstaina mutta lukujärjestyksessä on liikuntaa vain maanantaisin, luo torstain uinnille syntheticEvent ja maanantain liikunnalle annotation. eventKey on lyhyt kebab-case-tunniste tapahtumalle (esim. "heureka-retki", "uimahalli-kaynti") — sama tapahtuma eri viesteissä saa SAMAN eventKey:n. TÄRKEÄÄ: Jos viestissä mainitaan kellonaikoja (esim. "klo 13.40", "klo 10-14", "paluu n. klo 18"), poimi ne start- ja end-kenttiin muodossa HH:MM. Jätä start ja end pois jos kellonaikoja ei mainita.
 Käytä urgentNotices VAIN jos viesti sisältää välittömän toiminnan vaativan varoituksen — esim. oppilas on vaarassa hylätä kurssin poissaolojen takia, tai huomisen lukujärjestys muuttuu kriittisesti. ÄLÄ käytä urgentNotices rutiini-ilmoituksiin kuten kuukausitiedotteet, poissaolokoosteviestit, rekrytointi-ilmoitukset, tapahtumamuistutukset tai lomakkeiden palautuspyynnöt.
 Jos viestissä ei ole toimintaa vaativaa tietoa, palauta tyhjät taulukot.
 
 Tärkeät säännöt annotations-kentälle:
 - matchDate: valitse AINOASTAAN jokin annetussa lukujärjestyksessä esiintyvistä päivämääristä. Älä johda päivämäärää viestin sisällöstä.
 - matchSubject: kopioi TÄSMÄLLEEN lukujärjestyksen subject-kentän arvo — älä käytä displayName-arvoa. Esim. jos lukujärjestyksessä on {"subject": "LPa6 5kevät", "displayName": "Liikunta"}, anna matchSubject: "LPa6 5kevät". displayName kertoo aineen selkokielisen nimen jotta ymmärrät mihin aineeseen viesti viittaa.
+- Aikarajaus: Luo annotations vain niille tunneille joihin viesti OIKEASTI viittaa. Esim. viikkoviesti "tulevan viikon juttuja" koskee vain seuraavaa viikkoa, EI kaikkia tulevia viikkoja. Luo annotations pidemmälle vain jos viesti sanoo niin (esim. "koko huhtikuun ajan", "kevätlukukaudella joka viikko").
 
 Liikuntaviestit: Jos viesti kertoo liikuntatuntien sisällöstä, luo annotation JOKAISELLE lukujärjestyksen liikuntatunnille johon tieto pätee. Aseta activity-kenttään yksi: "uinti", "luistelu", "hiihto", "ulkoliikunta" tai "sisäliikunta". note-kenttään kirjoita lyhyt kuvaus ja mahdolliset tarvikkeet (esim. "Ota uimapuku ja pyyhe"). Jätä activity null:ksi jos kyse ei ole liikunnasta.`
 
@@ -119,7 +120,17 @@ async function processMessage(
   try {
     const json = text.trim().replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '')
     const parsed = JSON.parse(json)
-    const result = { annotations: parsed.annotations ?? [], syntheticEvents: parsed.syntheticEvents ?? [], urgentNotices: parsed.urgentNotices ?? [] }
+    const annotations: typeof parsed.annotations = []
+    const syntheticEvents: typeof parsed.syntheticEvents = [...(parsed.syntheticEvents ?? [])]
+    for (const a of parsed.annotations ?? []) {
+      const hasMatch = schedule.some(s => s.date === a.matchDate && s.subject === a.matchSubject)
+      if (hasMatch) {
+        annotations.push(a)
+      } else {
+        syntheticEvents.push({ date: a.matchDate, summary: a.note, ...(a.activity ? { eventKey: a.activity } : {}) })
+      }
+    }
+    const result = { annotations, syntheticEvents, urgentNotices: parsed.urgentNotices ?? [] }
     debugLog(logPath, { ts: new Date().toISOString(), child: childName, msgId: msg.wilmaId, prompt, response: text, parsed: result })
     return result
   } catch {

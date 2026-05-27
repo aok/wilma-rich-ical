@@ -35,7 +35,7 @@ const childSchools: Record<string, string | undefined> = {}
 for (const name of children) {
   const key = `TOKEN_${name.toUpperCase()}`
   const token = process.env[key]
-  if (!token) throw new Error(`Missing ${key} — run \`pnpm setup\` to generate tokens`)
+  if (!token) throw new Error(`Missing ${key} — run \`npx wilma-icald setup\` to generate tokens`)
   childTokens[name] = token
   tokenToChild[token] = name
   childSchools[name] = process.env[`SCHOOL_${name.toUpperCase()}`]

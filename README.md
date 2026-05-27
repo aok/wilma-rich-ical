@@ -1,4 +1,4 @@
-# wilma-rich-ical
+# wilma-icald
 
 Self-hosted server that builds enriched iCal feeds from Wilma data. Homework, exams, schedule, and teacher notes appear directly in your calendar app.
 
@@ -21,30 +21,40 @@ Self-hosted server that builds enriched iCal feeds from Wilma data. Homework, ex
 - An LLM API key (Anthropic or OpenAI)
 - A Wilma guardian (huoltaja) account
 
-## Install
+## Quick start (no install, no sudo, no Cloudflare account)
 
 ```bash
-npm install -g https://github.com/aok/wilma-rich-ical.git
-mkdir wilma-icald && cd wilma-icald
-wilma-icald setup
+npx wilma-icald setup
 ```
 
-Setup authenticates with Wilma, asks for your LLM key and an optional Cloudflare tunnel hostname, then writes `.env` and a service plist/unit.
+Setup authenticates with Wilma, asks for your LLM key, and (leave the tunnel hostname blank) starts the server as a detached process with a temporary [quick tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/) URL. State files (`.env`, `data/`, `wilma.log`, `calendar-urls.txt`) are written to the current directory. The quick-tunnel URL changes on every restart and the process does not survive a reboot — good for trying it out.
 
-## Running
+## Persistent server
 
-### Quick start (no sudo, no Cloudflare account)
+For a stable URL that survives reboots, install into a dedicated directory so the service points at a stable path:
 
-Leave the tunnel hostname blank during setup. The server starts as a detached process with a temporary [quick tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/) URL. The URL changes on every restart and the process does not survive a reboot.
+```bash
+mkdir wilma-icald && cd wilma-icald
+npm install wilma-icald
+npx wilma-icald setup     # enter a Cloudflare tunnel hostname when prompted
+```
 
-### Persistent service (requires Cloudflare account)
+Upgrade later with:
 
-For stable URLs that survive reboots:
+```bash
+npm install wilma-icald@latest && npx wilma-icald restart
+```
+
+`setup` authenticates with Wilma, asks for your LLM key and the Cloudflare tunnel hostname, then writes `.env` and a service plist/unit. (Running `setup` for a persistent service via `npx` is refused — npx's cache is temporary, so the service path would not survive; install locally first as above.)
+
+### Cloudflare tunnel (requires Cloudflare account)
+
+For a stable URL that survives reboots:
 
 1. Create a tunnel in the [Cloudflare Zero Trust dashboard](https://one.dash.cloudflare.com/) (Networks → Tunnels)
 2. Add a public hostname (e.g. `wilma.example.com`) pointing to `http://localhost:3456`
 3. Install cloudflared on the server: `sudo cloudflared service install <token>`
-4. Run `wilma-icald setup` and enter the tunnel hostname
+4. Run `npx wilma-icald setup` and enter the tunnel hostname
 
 On **Linux**, setup installs a user-level systemd unit — no sudo needed.
 
@@ -59,7 +69,7 @@ sudo launchctl load /Library/LaunchDaemons/com.wilma-rich-ical.plist
 After the service is installed:
 
 ```bash
-wilma-icald restart  # restart with new code (no sudo needed)
+npx wilma-icald restart  # restart with new code (no sudo needed)
 ```
 
 The daemon has `KeepAlive: true`, so `restart` simply kills the process and launchd/systemd restarts it automatically. Logs go to `wilma.log`. The server refreshes feeds every 30 minutes (configurable via `REFRESH_INTERVAL`).

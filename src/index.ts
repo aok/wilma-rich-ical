@@ -35,5 +35,5 @@ export function start() {
 
   refresh()
   setInterval(refresh, config.refreshInterval * 60_000)
-  log(`wilma-rich-ical running. Refresh every ${config.refreshInterval}min, port ${config.port}`)
+  log(`wilma-icald running. Refresh every ${config.refreshInterval}min, port ${config.port}`)
 }

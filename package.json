@@ -1,9 +1,31 @@
 {
-  "name": "wilma-rich-ical",
-  "version": "0.1.0",
+  "name": "wilma-icald",
+  "version": "0.2.0",
   "type": "module",
   "description": "Self-hosted enriched iCal feeds from Wilma school data",
   "license": "MIT",
+  "author": "Oskari Kettunen",
+  "keywords": [
+    "wilma",
+    "ical",
+    "calendar",
+    "school",
+    "icalendar"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aok/wilma-rich-ical.git"
+  },
+  "homepage": "https://github.com/aok/wilma-rich-ical#readme",
+  "bugs": {
+    "url": "https://github.com/aok/wilma-rich-ical/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "wilma-icald": "dist/cli.js"
   },

@@ -91,11 +91,28 @@ async function main() {
   }
 }
 
+function stableNodePath(): string {
+  for (const candidate of ['/opt/homebrew/bin/node', '/usr/local/bin/node']) {
+    if (existsSync(candidate)) return candidate
+  }
+  return process.execPath
+}
+
 function installService(persistent: boolean) {
   const cliPath = resolve(dirname(fileURLToPath(import.meta.url)), 'cli.js')
-  const nodePath = process.execPath
+  const nodePath = stableNodePath()
   const workDir = process.cwd()
   const logPath = join(workDir, 'wilma.log')
+
+  if (persistent && cliPath.includes('/_npx/')) {
+    console.error('\nA persistent service needs a stable install path, but wilma-icald is')
+    console.error('running from the temporary npx cache (which npm garbage-collects).')
+    console.error('Install it into a dedicated directory first, then re-run setup there:\n')
+    console.error('  mkdir wilma-icald && cd wilma-icald')
+    console.error('  npm install wilma-icald')
+    console.error('  npx wilma-icald setup\n')
+    process.exit(1)
+  }
 
   if (persistent) {
     if (process.platform === 'darwin') {

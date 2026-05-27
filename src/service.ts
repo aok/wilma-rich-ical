@@ -7,8 +7,8 @@ const SYSTEMD_UNIT = 'wilma-icald'
 export function serviceRestart() {
   if (process.platform === 'darwin') {
     try {
-      execSync('pgrep -f "node.*wilma-rich-ical.*cli"', { encoding: 'utf8' })
-      execSync('pkill -f "node.*wilma-rich-ical.*cli"')
+      execSync('pgrep -f "node.*wilma-icald.*cli"', { encoding: 'utf8' })
+      execSync('pkill -f "node.*wilma-icald.*cli"')
       console.log('Service process killed. launchd will restart it automatically.')
     } catch {
       console.log('No running wilma-icald process found.')

@@ -1,4 +1,4 @@
-import { generateText } from 'ai'
+import { generateText, type LanguageModel } from 'ai'
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { createOpenAI } from '@ai-sdk/openai'
 import { appendFileSync, mkdirSync } from 'node:fs'
@@ -12,7 +12,7 @@ import { log, logError } from '../logger.js'
 
 const THROTTLE_MS = 2000
 
-function getModel(provider: string, modelId: string) {
+function getModel(provider: string, modelId: string): LanguageModel {
   if (provider === 'openai') return createOpenAI()(modelId)
   return createAnthropic()(modelId)
 }
@@ -99,6 +99,7 @@ async function processMessage(
   subjectNames: SubjectNames,
   existingSynthetics: SyntheticEvent[],
   logPath?: string,
+  modelOverride?: LanguageModel,
 ): Promise<{
   annotations: Omit<ScheduleAnnotation, 'student' | 'expires' | 'sourceMessageId'>[]
   syntheticEvents: (Omit<SyntheticEvent, 'student' | 'expires' | 'sourceMessageId' | 'eventKey'> & { eventKey?: string })[]
@@ -111,7 +112,7 @@ async function processMessage(
   const prompt = `Viestin päivämäärä: ${messageDate}\nOpiskelija: ${childName}\nViesti: ${msg.body}\nLukujärjestys (8 viikkoa eteenpäin):\n${JSON.stringify(schedule, null, 2)}${existingSection}`
 
   const { text } = await generateText({
-    model: getModel(provider, modelId),
+    model: modelOverride ?? getModel(provider, modelId),
     system: SYSTEM_PROMPT,
     prompt,
     temperature: 0,
@@ -163,6 +164,7 @@ export async function processNewMessages(
   subjectNames: SubjectNames = {},
   existingSynthetics: SyntheticEvent[] = [],
   debugLogPath?: string,
+  modelOverride?: LanguageModel,
 ): Promise<{ annotations: ScheduleAnnotation[]; syntheticEvents: SyntheticEvent[]; urgentNotices: UrgentNotice[]; processedIds: number[] }> {
   const allAnnotations: ScheduleAnnotation[] = []
   const allSyntheticEvents: SyntheticEvent[] = []
@@ -177,7 +179,7 @@ export async function processNewMessages(
       if (!msg.body) continue
       if (callCount > 0) await sleep(THROTTLE_MS)
       try {
-        const result = await processMessage(childName, msg, childSchedule, provider, modelId, subjectNames, [...existingSynthetics, ...allSyntheticEvents], debugLogPath)
+        const result = await processMessage(childName, msg, childSchedule, provider, modelId, subjectNames, [...existingSynthetics, ...allSyntheticEvents], debugLogPath, modelOverride)
         callCount++
         processedIds.push(msg.wilmaId)
         for (const a of result.annotations) {

@@ -23,6 +23,9 @@ importers:
       ai:
         specifier: ^6.0.191
         version: 6.0.191(zod@3.25.76)
+      cloudflared:
+        specifier: ^0.7.1
+        version: 0.7.1
       date-fns:
         specifier: ^4.3.0
         version: 4.3.0
@@ -527,6 +530,10 @@ packages:
   cli-width@4.1.0:
     resolution: {integrity: sha512-ouuZd4/dm2Sw5Gmqy6bGyNNNe1qt9RpmxveLSO7KcgsTnU7RXfsw+/bukWGo1abgBiMAic068rclZsO4IWmmxQ==}
     engines: {node: '>= 12'}
+
+  cloudflared@0.7.1:
+    resolution: {integrity: sha512-jJn1Gu9Tf4qnIu8tfiHZ25Hs8rNcRYSVf8zAd97wvYdOCzftm1CTs1S/RPhijjGi8gUT1p9yzfDi9zYlU/0RwA==}
+    hasBin: true
 
   color-convert@2.0.1:
     resolution: {integrity: sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==}
@@ -1406,6 +1413,8 @@ snapshots:
       whatwg-mimetype: 4.0.0
 
   cli-width@4.1.0: {}
+
+  cloudflared@0.7.1: {}
 
   color-convert@2.0.1:
     dependencies:

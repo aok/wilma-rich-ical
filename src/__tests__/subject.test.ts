@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { subjectKey } from '../subject.js'
+import { resolveSubjectName, subjectKey } from '../subject.js'
 import sykConfig from '../schools/syk.js'
 
 describe('subjectKey', () => {
@@ -15,8 +15,13 @@ describe('subjectKey', () => {
   })
 
   it('strips a bare grade number', () => {
+    expect(subjectKey('MA1')).toBe('MA')
     expect(subjectKey('MA6')).toBe('MA')
     expect(subjectKey('MA7')).toBe('MA')
+  })
+
+  it('strips the grade from a language code without eating its level', () => {
+    expect(subjectKey('RA1a1.c')).toBe('RA1')
   })
 
   it('keeps a language level that is part of the subject name', () => {
@@ -50,14 +55,18 @@ describe('syk subject map', () => {
   it('covers the codes seen at the start of the 2026 autumn term', () => {
     const seen = [
       'MA7', 'MUa7', 'RUa7', 'SA1a7.a', 'VaEA2a7.a', 'YOa7', 'ÄIa7',
+      'ETa1.cd', 'KUa1', 'LPa1.cd', 'MA1', 'MA1.1', 'MUa1', 'RA1a1.c', 'YOa1', 'ÄIa1', 'ÄIa1.1',
+      'uVaHI8.s',
       'uBIy3.b', 'uETy3.ab', 'uKEy3.b', 'uMAy3', 'uMUy3', 'uRA1y3.b', 'uRUy3', 'uVaEA2y3', 'uVaTI8MOK.1', 'uÄIy3',
     ]
-    const unmapped = seen.filter(code => !names[subjectKey(code)])
+    const unmapped = seen.filter(code => !resolveSubjectName(code, names))
     expect(unmapped).toEqual([])
   })
 
-  it('names the elective MOK course despite its mid-code grade', () => {
+  it('names electives on their full code, not their stem', () => {
     expect(names[subjectKey('uVaTI8MOK.1')]).toBe('Teatteri, MOK')
+    expect(names['uVaHI8']).toBe('Historiaa luonnossa')
+    expect(names[subjectKey('uVaHI8.s')]).toBeUndefined()
   })
 
   it('filters out reserved slots', () => {

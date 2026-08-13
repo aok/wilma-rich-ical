@@ -13,3 +13,13 @@ export function subjectKey(code: string): string {
   const marked = base.replace(/[ay]\d+$/, '')
   return marked === base ? base.replace(/\d+$/, '') : marked
 }
+
+// Most subjects are named by stem, but a map may also pin a full code — an
+// exact or group-stripped key wins, so a year-specific elective can override
+// the stem it would otherwise reduce to.
+export function resolveSubjectName(
+  code: string,
+  names: Record<string, string>,
+): string | undefined {
+  return names[code] ?? names[code.replace(/\..+$/, '')] ?? names[subjectKey(code)]
+}

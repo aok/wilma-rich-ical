@@ -9,6 +9,7 @@ const config: SchoolConfig = {
     'ÄI': 'Äidinkieli ja kirjallisuus',
     'MA': 'Matematiikka',
     'SA1': 'Saksa A1',
+    'RA1': 'Ranska A1',
     'VaEA2': 'Englanti A2',
     'RU': 'Ruotsi B1',
     'HY': 'Yhteiskuntaoppi ja historia',
@@ -39,10 +40,13 @@ const config: SchoolConfig = {
     'uLT': 'Liikunta',
     'uOP': 'Opinto-ohjaus',
 
-    // Elective MOK courses put the grade mid-code ("8MOK") rather than in a
-    // trailing marker, so this key is not a stem and will not survive into the
-    // next year. That is fine: a new code there means a different course.
+    // "Va" marks a valinnainen. The A2 languages above are keyed as stems
+    // because they run for years, but one-off electives are keyed on the full
+    // grade-bearing code on purpose: the offering changes annually, so a new
+    // code means a different course and should not inherit an old name.
+    // These match via the base-code lookup in displayName, not the stem.
     'uVaTI8MOK': 'Teatteri, MOK',
+    'uVaHI8': 'Historiaa luonnossa',
   },
 }
 

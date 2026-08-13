@@ -40,9 +40,18 @@ describe('subjectKey', () => {
 describe('syk subject map', () => {
   const names = sykConfig.subjectNames!
 
-  it('is keyed on stems, so no key carries a grade marker', () => {
+  // Electives are pinned to a full code on purpose so next year's course
+  // cannot inherit this year's name. Anything else carrying a grade would be
+  // an accident that goes stale in August, so new ones must be declared here.
+  const YEAR_SPECIFIC = ['uVaTI8MOK', 'uVaHI8', 'VaVAa7']
+
+  it('keys subjects on stems, apart from the declared electives', () => {
     const withGrade = Object.keys(names).filter(key => /[ay]\d+$/.test(key))
-    expect(withGrade).toEqual([])
+    expect(withGrade.filter(key => !YEAR_SPECIFIC.includes(key))).toEqual([])
+  })
+
+  it('declares every year-specific elective it maps', () => {
+    for (const key of YEAR_SPECIFIC) expect(names[key]).toBeDefined()
   })
 
   it('resolves this year and last year codes to the same name', () => {
@@ -56,7 +65,7 @@ describe('syk subject map', () => {
     const seen = [
       'MA7', 'MUa7', 'RUa7', 'SA1a7.a', 'VaEA2a7.a', 'YOa7', 'ÄIa7',
       'ETa1.cd', 'KUa1', 'LPa1.cd', 'MA1', 'MA1.1', 'MUa1', 'RA1a1.c', 'YOa1', 'ÄIa1', 'ÄIa1.1',
-      'uVaHI8.s',
+      'TIa1', 'VaVAa7.kpu1', 'uVaHI8.s',
       'uBIy3.b', 'uETy3.ab', 'uKEy3.b', 'uMAy3', 'uMUy3', 'uRA1y3.b', 'uRUy3', 'uVaEA2y3', 'uVaTI8MOK.1', 'uÄIy3',
     ]
     const unmapped = seen.filter(code => !resolveSubjectName(code, names))
@@ -65,8 +74,15 @@ describe('syk subject map', () => {
 
   it('names electives on their full code, not their stem', () => {
     expect(names[subjectKey('uVaTI8MOK.1')]).toBe('Teatteri, MOK')
-    expect(names['uVaHI8']).toBe('Historiaa luonnossa')
+    expect(resolveSubjectName('uVaHI8.s', names)).toBe('Historiaa luonnossa')
     expect(names[subjectKey('uVaHI8.s')]).toBeUndefined()
+    expect(resolveSubjectName('VaVAa7.kpu1', names)).toBe('Valinnainen kurssi')
+    expect(names[subjectKey('VaVAa7.kpu1')]).toBeUndefined()
+  })
+
+  it('names a recurring subject on its stem, across grades', () => {
+    expect(resolveSubjectName('TIa1', names)).toBe('Teatteri')
+    expect(resolveSubjectName('TIa4.b', names)).toBe('Teatteri')
   })
 
   it('filters out reserved slots', () => {

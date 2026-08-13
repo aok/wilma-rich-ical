@@ -20,6 +20,7 @@ const config: SchoolConfig = {
     'MU': 'Musiikki',
     'LP': 'Liikunta',
     'KÄS': 'Käsityö',
+    'TI': 'Teatteri',
 
     'uÄI': 'Äidinkieli ja kirjallisuus',
     'uMA': 'Matematiikka',
@@ -47,6 +48,9 @@ const config: SchoolConfig = {
     // These match via the base-code lookup in displayName, not the stem.
     'uVaTI8MOK': 'Teatteri, MOK',
     'uVaHI8': 'Historiaa luonnossa',
+    // Wilma's own placeholder — the school is expected to give this course a
+    // real name later, at which point this entry needs replacing, not removing.
+    'VaVAa7': 'Valinnainen kurssi',
   },
 }
 

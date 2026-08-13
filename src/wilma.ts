@@ -72,10 +72,7 @@ interface WilmaiConfig {
 
 
 import { getSchoolConfig } from './schools/index.js'
-
-function baseSubjectCode(code: string): string {
-  return code.replace(/\..+$/, '')
-}
+import { subjectKey } from './subject.js'
 
 function wilmaConfigPath(): string {
   const base = process.env['XDG_CONFIG_HOME'] ?? join(homedir(), '.config')
@@ -223,14 +220,14 @@ export async function fetchSchedule(childSchools: Record<string, string | undefi
           const overview = await client.overview.get()
 
           for (const hw of overview.homework) {
-            if (hw.subjectCode && hw.subject) subjectNames[baseSubjectCode(hw.subjectCode)] = hw.subject
+            if (hw.subjectCode && hw.subject) subjectNames[subjectKey(hw.subjectCode)] = hw.subject
           }
           for (const grade of overview.grades) {
-            if (grade.subjectCode && grade.subject) subjectNames[baseSubjectCode(grade.subjectCode)] = grade.subject
+            if (grade.subjectCode && grade.subject) subjectNames[subjectKey(grade.subjectCode)] = grade.subject
           }
           exams[name] = []
           for (const exam of overview.upcomingExams) {
-            if (exam.subjectCode && exam.subject) subjectNames[baseSubjectCode(exam.subjectCode)] = exam.subject
+            if (exam.subjectCode && exam.subject) subjectNames[subjectKey(exam.subjectCode)] = exam.subject
             exams[name].push({
               subject: exam.subjectCode || exam.subject,
               date: exam.date,

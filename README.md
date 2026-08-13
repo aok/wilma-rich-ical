@@ -5,7 +5,7 @@ Self-hosted server that builds enriched iCal feeds from Wilma data. Homework, ex
 ## How it works
 
 1. Authenticates with Wilma via the `wilma` CLI
-2. Fetches each student's weekly schedule and caches it (so the feed grows over time)
+2. Fetches each student's weekly schedule and caches it, so the feed reaches further ahead than the single week Wilma returns (past days are kept for a week, then pruned)
 3. Fetches Wilma messages and processes them with an LLM
 4. Builds a complete iCal feed per child:
    - **Schedule** — timed events from the cached timetable
@@ -76,7 +76,7 @@ After the service is installed, upgrade and restart with no sudo:
 npm install wilma-icald@latest && npx wilma-icald restart
 ```
 
-The daemon has `KeepAlive: true`, so `restart` simply kills the process and launchd/systemd restarts it automatically. Logs go to `wilma.log`. The server refreshes feeds every 30 minutes (configurable via `REFRESH_INTERVAL`).
+The daemon has `KeepAlive: true`, so `restart` simply kills the process and launchd/systemd restarts it automatically. Logs go to `wilma.log`; it and `data/llm-debug.jsonl` are rolled to a `.1` copy once they pass 8 MB. The server refreshes feeds every 30 minutes (configurable via `REFRESH_INTERVAL`).
 
 ## Subscribing
 

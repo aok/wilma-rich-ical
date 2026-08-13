@@ -77,8 +77,9 @@ export function pruneExpired(memory: Memory, today: Date, tz: string): Memory {
   const cutoff = formatInTimeZone(subDays(today, 7), tz, 'yyyy-MM-dd')
 
   const prunedCache: Record<string, ScheduleEntry[]> = {}
-  for (const [date, entries] of Object.entries(memory.schedule_cache)) {
-    if (date >= cutoff) prunedCache[date] = entries
+  for (const [key, entries] of Object.entries(memory.schedule_cache)) {
+    const date = key.slice(key.indexOf(':') + 1)
+    if (date >= cutoff) prunedCache[key] = entries
   }
 
   return {

@@ -1,6 +1,7 @@
 import { parseISO, format } from 'date-fns'
 import type { WilmaStudentSummary, SubjectNames, ExamDetail } from './wilma.js'
 import type { ScheduleAnnotation, ScheduleEntry, SyntheticEvent } from './memory.js'
+import { subjectKey } from './subject.js'
 
 function icalEscape(text: string): string {
   return text.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n')
@@ -161,6 +162,8 @@ function displayName(entry: ScheduleEntry, subjectNames: SubjectNames): string {
     if (subjectNames[entry.subjectCode]) return subjectNames[entry.subjectCode]
     const baseCode = entry.subjectCode.replace(/\..+$/, '')
     if (subjectNames[baseCode]) return subjectNames[baseCode]
+    const key = subjectKey(entry.subjectCode)
+    if (subjectNames[key]) return subjectNames[key]
   }
   return entry.subject
 }

@@ -27,6 +27,8 @@ function discoverChildren(): string[] {
 
 const children = discoverChildren()
 
+const memoryPath = process.env['MEMORY_PATH'] ?? 'data/memory.json'
+
 const childTokens: Record<string, string> = {}
 const tokenToChild: Record<string, string> = {}
 
@@ -53,6 +55,8 @@ export const config = {
   port: Number(process.env['PORT'] ?? '3456'),
   refreshInterval: Number(process.env['REFRESH_INTERVAL'] ?? '30'),
   tz: process.env['TZ'] ?? 'Europe/Helsinki',
-  memoryPath: process.env['MEMORY_PATH'] ?? 'data/memory.json',
+  memoryPath,
+  llmLogPath: memoryPath.replace(/[^/]+$/, 'llm-debug.jsonl'),
+  logPath: 'wilma.log',
   tunnelHostname: process.env['TUNNEL_HOSTNAME'] as string | undefined,
 }

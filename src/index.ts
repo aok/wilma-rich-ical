@@ -4,6 +4,7 @@ import { config } from './config.js'
 import { startServer } from './server.js'
 import { startTunnel } from './tunnel.js'
 import { runRefresh } from './refresh.js'
+import { rotateIfLarge } from './log-rotate.js'
 import { log, logError } from './logger.js'
 
 function writeUrls(baseUrl: string) {
@@ -29,6 +30,10 @@ export function start() {
     })
 
   async function refresh() {
+    for (const path of [config.logPath, config.llmLogPath]) {
+      try { if (rotateIfLarge(path)) log(`[log] Rotated ${path} to ${path}.1`) }
+      catch (err) { logError(`[log] Rotation failed for ${path}`, err) }
+    }
     try { await runRefresh() }
     catch (err) { logError('[refresh] Uncaught error', err) }
   }

@@ -37,6 +37,11 @@ const config: SchoolConfig = {
     'uTS': 'Käsityö',
     'uLT': 'Liikunta',
     'uOP': 'Opinto-ohjaus',
+
+    // Elective MOK courses put the grade mid-code ("8MOK") rather than in a
+    // trailing marker, so this key is not a stem and will not survive into the
+    // next year. That is fine: a new code there means a different course.
+    'uVaTI8MOK': 'Teatteri, MOK',
   },
 }
 

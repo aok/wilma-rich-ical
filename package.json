@@ -1,6 +1,6 @@
 {
   "name": "wilma-icald",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
   "description": "Self-hosted enriched iCal feeds from Wilma school data",
   "license": "MIT",

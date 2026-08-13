@@ -50,7 +50,7 @@ describe('syk subject map', () => {
   it('covers the codes seen at the start of the 2026 autumn term', () => {
     const seen = [
       'MA7', 'MUa7', 'RUa7', 'SA1a7.a', 'VaEA2a7.a', 'YOa7', 'ÄIa7',
-      'uBIy3.b', 'uETy3.ab', 'uMAy3', 'uMUy3', 'uRA1y3.b', 'uRUy3', 'uVaEA2y3', 'uVaTI8MOK.1', 'uÄIy3',
+      'uBIy3.b', 'uETy3.ab', 'uKEy3.b', 'uMAy3', 'uMUy3', 'uRA1y3.b', 'uRUy3', 'uVaEA2y3', 'uVaTI8MOK.1', 'uÄIy3',
     ]
     const unmapped = seen.filter(code => !names[subjectKey(code)])
     expect(unmapped).toEqual([])

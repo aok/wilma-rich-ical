@@ -29,6 +29,7 @@ const config: SchoolConfig = {
     'uGE': 'Maantieto',
     'uBI': 'Biologia',
     'uFY': 'Fysiikka',
+    'uKE': 'Kemia',
     'uTT': 'Terveystieto',
     'uET': 'Elämänkatsomustieto',
     'uKU': 'Kuvataide',
